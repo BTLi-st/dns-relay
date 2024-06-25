@@ -1,4 +1,5 @@
 .vscode/
 log/
+data/
 *.o
 dns_server
