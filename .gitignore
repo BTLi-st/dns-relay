@@ -1,5 +1,7 @@
 .vscode/
-log/
-data/
+bin/
+lib/
+build/*
+!build/CMakeLists.txt
 *.o
 dns_server
