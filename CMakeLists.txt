@@ -32,6 +32,20 @@ add_library(dns_server_lib STATIC ${SRC_LIST})
 add_executable(dns_server ${PROJECT_BINARY_DIR}/../src/main.cpp)
 
 # 为不同的构建类型设置不同的编译选项
+if(MSVC)
+
+target_compile_options(dns_server_lib PRIVATE 
+    $<$<CONFIG:Debug>:/DDEBUG /Od /Zi /Zc:__cplusplus>
+    $<$<CONFIG:Release>:/DNDEBUG /O2 /Zc:__cplusplus>
+)
+
+target_compile_options(dns_server PRIVATE 
+    $<$<CONFIG:Debug>:/DDEBUG /Od /Zi /Zc:__cplusplus>
+    $<$<CONFIG:Release>:/DNDEBUG /O2 /Zc:__cplusplus>
+)
+    
+else(MSVC)
+
 target_compile_options(dns_server_lib PRIVATE 
     $<$<CONFIG:Debug>:-DDEBUG -O0 -g>
     $<$<CONFIG:Release>:-DNDEBUG -O3>
@@ -41,6 +55,8 @@ target_compile_options(dns_server PRIVATE
     $<$<CONFIG:Debug>:-DDEBUG -O0 -g>
     $<$<CONFIG:Release>:-DNDEBUG -O3>
 )
+
+endif(MSVC)
 
 # 链接静态库
 target_link_libraries(dns_server dns_server_lib)
