@@ -1,0 +1,3 @@
+.vscode/
+*.o
+dns_server
