@@ -1,3 +1,6 @@
+# 允许测试
+enable_testing()
+
 # CMAKE 最小版本要求
 cmake_minimum_required(VERSION 3.5)
 
