@@ -35,13 +35,13 @@ add_executable(dns_server ${PROJECT_BINARY_DIR}/../src/main.cpp)
 if(MSVC)
 
 target_compile_options(dns_server_lib PRIVATE 
-    $<$<CONFIG:Debug>:/DDEBUG /Od /Zi /Zc:__cplusplus /source_charset:utf-8 /execution-charset:utf-8>
-    $<$<CONFIG:Release>:/DNDEBUG /O2 /Zc:__cplusplus /source_charset:utf-8 /execution-charset:utf-8>
+    $<$<CONFIG:Debug>:/DDEBUG /Od /Zi /Zc:__cplusplus /utf-8>
+    $<$<CONFIG:Release>:/DNDEBUG /O2 /Zc:__cplusplus /utf-8>
 )
 
 target_compile_options(dns_server PRIVATE 
-    $<$<CONFIG:Debug>:/DDEBUG /Od /Zi /Zc:__cplusplus /source_charset:utf-8 /execution-charset:utf-8>
-    $<$<CONFIG:Release>:/DNDEBUG /O2 /Zc:__cplusplus /source_charset:utf-8 /execution-charset:utf-8>
+    $<$<CONFIG:Debug>:/DDEBUG /Od /Zi /Zc:__cplusplus /utf-8>
+    $<$<CONFIG:Release>:/DNDEBUG /O2 /Zc:__cplusplus /utf-8>
 )
     
 else(MSVC)
