@@ -4,9 +4,35 @@
 
 ## 构建方法
 
+### Linux 环境
+
+#### 依赖
+
+- `cmake`
+- `make`
+- `g++`
+
+#### 构建
+
 ```shell
 $ mkdir build
 $ cd build
 $ cmake ..
 $ make
+```
+
+### Windows 环境
+
+#### 依赖
+
+- `cmake`
+- `mingw-w64`
+
+#### 构建
+
+```shell
+$ mkdir build
+$ cd build
+$ cmake -G "MinGW Makefiles" ..
+$ mingw32-make
 ```
