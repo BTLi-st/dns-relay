@@ -4,7 +4,7 @@
 
 int main()
 {
-    Log log(FilePath().add_dir("log").add_file("server.log"), DEBUG);
+    Log log(FilePath().add_dir("log").add_file("server.log"), DBG);
     log.info("Hello, World!");
     std::thread t1([&log] {
         log.debug("Debug from thread1.");

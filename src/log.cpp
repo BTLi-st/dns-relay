@@ -41,7 +41,7 @@ Log::Log(Level level, bool write_to_console)
     write_to_file = false;
     this->write_to_console = write_to_console;
 #if defined(DEBUG)
-    total_level = DEBUG;
+    total_level = DBG;
 #else
     total_level = level;
 #endif
@@ -53,7 +53,7 @@ Log::Log(FilePath path, Level level, bool write_to_console)
     write_to_file = true;
     this->write_to_console = write_to_console;
 #if defined(DEBUG)
-    total_level = DEBUG;
+    total_level = DBG;
 #else
     total_level = level;
 #endif

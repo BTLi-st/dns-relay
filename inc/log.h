@@ -21,7 +21,7 @@ CHECK_C_PLUS_PLUS_STANDARD(202002L) // C++20
 
 enum Level
 {
-    DEBUG,
+    DBG,
     INFO,
     WARNING,
     ERR,
@@ -112,7 +112,7 @@ void Log::fatal(std::string format, auto... args)
 
 void Log::debug(std::string format, auto... args)
 {
-    if (total_level <= DEBUG)
+    if (total_level <= DBG)
     {
         std::string info = std::vformat(format, std::make_format_args(args...));
         std::string time_now = get_time();
