@@ -27,6 +27,8 @@ private:
     WSADATA wsaData;
     SOCKET s;
     struct sockaddr_in addr;
+
+    static int instance_count;
 #else
     int s;
     struct sockaddr_in addr;

@@ -2,12 +2,17 @@
 
 UDP_SOCKET::UDP_SOCKET(Log &log) : log(log)
 {
+    log.debug("Create UDP socket.");
 #ifdef _WIN32
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+    if (instance_count == 0)
     {
-        log.fatal("WSAStartup failed.");
-        throw std::runtime_error("WSAStartup failed.");
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        {
+            log.fatal("WSAStartup failed.");
+            throw std::runtime_error("WSAStartup failed.");
+        }
     }
+    instance_count++;
     s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (socket == INVALID_SOCKET)
     {
@@ -27,11 +32,22 @@ UDP_SOCKET::UDP_SOCKET(Log &log) : log(log)
 
 UDP_SOCKET::~UDP_SOCKET()
 {
-    close();
+    if (s != -1)
+    {
+        close();
+    }
+#ifdef _WIN32
+    instance_count--;
+    if (instance_count == 0)
+    {
+        WSACleanup();
+    }
+#endif
 }
 
 void UDP_SOCKET::bind(const char *ip, int port)
 {
+    log.info("Bind to {}:{}", ip, port);
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr(ip);
@@ -49,6 +65,8 @@ void UDP_SOCKET::bind(std::string ip, int port)
 
 void UDP_SOCKET::sendto(const char *ip, int port, const char *buf, int len)
 {
+    log.debug("Send to {}:{}", ip, port);
+    struct sockaddr_in addr; // 地址
     addr.sin_family = AF_INET; // IPv4
     addr.sin_port = htons(port); // 端口
     addr.sin_addr.s_addr = inet_addr(ip); // IP 地址
@@ -66,6 +84,7 @@ void UDP_SOCKET::sendto(const std::string ip, int port, const char *buf, int len
 
 int UDP_SOCKET::recvfrom(char *ip, int *port, char *buf, int len)
 {
+    
     struct sockaddr_in addr; // 地址
     socklen_t addr_len = sizeof(addr); // 地址长度
     int ret = ::recvfrom(s, buf, len, 0, (struct sockaddr *)&addr, &addr_len); // 接收数据
@@ -76,6 +95,7 @@ int UDP_SOCKET::recvfrom(char *ip, int *port, char *buf, int len)
     }
     *port = ntohs(addr.sin_port); // 端口
     strcpy(ip, inet_ntoa(addr.sin_addr)); // IP 地址
+    log.debug("Recv from {}:{}", ip, *port);
     return ret;
 }
 
@@ -91,9 +111,12 @@ int UDP_SOCKET::recvfrom(std::string &ip, int &port, char *buf, int len)
 
 void UDP_SOCKET::close()
 {
+    log.info("Close UDP socket.");
 #ifdef _WIN32
     closesocket(s);
+    s = INVALID_SOCKET;
 #else
     ::close(s);
+    s = -1;
 #endif
 }
