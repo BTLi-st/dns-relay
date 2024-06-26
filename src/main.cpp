@@ -1,27 +1,15 @@
 #include <thread>
 #include <chrono>
 #include "log.h"
+#include "dns.h"
 
 int main()
 {
     Log log(FilePath().add_dir("log").add_file("server.log"), DBG);
-    log.info("Hello, World!");
-    std::thread t1([&log] {
-        log.debug("Debug from thread1.");
-        log.info("Message from thread1.");
-        log.warning("Warning from thread1.");
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        log.error("Error from thread1.");
-        log.fatal("Fatal from thread1.");
-    });
-    std::thread t2([&log] {
-        log.debug("Debug from thread2.");
-        log.info("Message from thread2.");
-        log.warning("Warning from thread2.");
-        log.error("Error from thread2.");
-        log.fatal("Fatal from thread2.");
-    });
-    t1.join();
-    t2.join();
+    DomainName domain_name("www.baidu.com");
+    log.debug("Domain name: {}", domain_name.get_domain_name());
+    DomainName domain_name_dns_format;
+    domain_name_dns_format.set_domain_name_dns_format(domain_name.get_domain_name_dns_format());
+    log.debug("Domain name DNS format: {}", domain_name_dns_format.get_domain_name());
     return 0;
 }
