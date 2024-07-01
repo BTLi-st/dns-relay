@@ -10,14 +10,14 @@ int main()
     log.debug("Domain name: {}", domain_name.get_domain_name());
     DNSHeader header;
     header.id = 0x1234; // 4660
-    header.qr = QUERY; // 查询
+    header.qr = 0; // 查询
     header.opcode = 0; // 标准查询
     header.aa = 0; // 非授权回答
     header.tc = 0; // 未截断
     header.rd = 1; // 期望递归
     header.ra = 0; // 未使用递归
     header.z = 0; // 保留
-    header.rcode = NO_ERROR; // 无错误
+    header.rcode = 0; // 无错误
     header.qdcount = 1; // 问题数
     header.ancount = 0; // 回答数
     header.nscount = 0; // 授权数

@@ -14,7 +14,7 @@ UDP_SOCKET::UDP_SOCKET(Log &log) : log(log)
     }
     instance_count++;
     s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (socket == INVALID_SOCKET)
+    if (socket == -1)
     {
         log.fatal("Create socket failed.");
         WSACleanup();

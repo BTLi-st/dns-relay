@@ -10,23 +10,6 @@
 #include "log.h"
 #include "socket.h"
 
-enum DNS_OPCODE
-{
-    QUERY = 0, // 标准查询
-    IQUERY = 1, // 反向查询
-    STATUS = 2 // 服务器状态请求
-};
-
-enum DNS_RCODE
-{
-    NO_ERROR = 0, // 没有错误
-    FORMAT_ERROR = 1, // 格式错误
-    SERVER_FAILURE = 2, // 服务器错误
-    NAME_ERROR = 3, // 名字错误
-    NOT_IMPLEMENTED = 4, // 不支持
-    REFUSED = 5 // 拒绝
-};
-
 enum TYPE
 {
     A = 1, // IPv4 地址
