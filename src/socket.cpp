@@ -72,8 +72,8 @@ void UDP_SOCKET::sendto(const char *ip, int port, const char *buf, int len)
     addr.sin_addr.s_addr = inet_addr(ip); // IP 地址
     if (::sendto(s, buf, len, 0, (struct sockaddr *)&addr, sizeof(addr)) == -1) // 发送数据
     {
-        log.fatal("Sendto failed."); // 记录错误
-        throw std::runtime_error("Sendto failed."); // 抛出异常
+        log.fatal("Socket sendto failed.");
+        throw std::runtime_error("Socket sendto failed.");
     }
 }
 
@@ -88,11 +88,6 @@ int UDP_SOCKET::recvfrom(char *ip, int *port, char *buf, int len)
     struct sockaddr_in addr; // 地址
     socklen_t addr_len = sizeof(addr); // 地址长度
     int ret = ::recvfrom(s, buf, len, 0, (struct sockaddr *)&addr, &addr_len); // 接收数据
-    if (ret == -1) // 如果接收失败
-    {
-        log.fatal("Recvfrom failed.");
-        throw std::runtime_error("Recvfrom failed.");
-    }
     *port = ntohs(addr.sin_port); // 端口
     strcpy(ip, inet_ntoa(addr.sin_addr)); // IP 地址
     log.debug("Recv from {}:{}", ip, *port);

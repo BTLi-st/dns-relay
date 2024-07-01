@@ -4,8 +4,11 @@
 
 #include <string>
 #include <vector>
+#include <functional>
+#include <map>
 
 #include "log.h"
+#include "socket.h"
 
 enum DNS_OPCODE
 {
@@ -27,23 +30,24 @@ enum DNS_RCODE
 enum TYPE
 {
     A = 1, // IPv4 地址
-    NS = 2, // 名字服务器
-    MD = 3, // 实际的邮件中转站
-    MF = 4, // 邮件中转站
-    CNAME = 5, // 规范名称
-    SOA = 6, // 开始授权
-    MB = 7, // 负责邮箱的邮箱报文
-    MG = 8, // 邮箱组成员
-    MR = 9, // 邮箱重命名
-    NULL_R = 10, // 空
-    WKS = 11, // 熟知服务
-    PTR = 12, // 指针
-    HINFO = 13, // 主机信息
-    MINFO = 14, // 邮件信息
-    MX = 15, // 邮件交换
-    TXT = 16, // 文本
-    AAAA = 28, // IPv6 地址
-    ANY = 255 // 任意类型
+    // NS = 2, // 名字服务器
+    // MD = 3, // 实际的邮件中转站
+    // MF = 4, // 邮件中转站
+    // CNAME = 5, // 规范名称
+    // SOA = 6, // 开始授权
+    // MB = 7, // 负责邮箱的邮箱报文
+    // MG = 8, // 邮箱组成员
+    // MR = 9, // 邮箱重命名
+    // NULL_R = 10, // 空
+    // WKS = 11, // 熟知服务
+    // PTR = 12, // 指针
+    // HINFO = 13, // 主机信息
+    // MINFO = 14, // 邮件信息
+    // MX = 15, // 邮件交换
+    // TXT = 16, // 文本
+    // AAAA = 28, // IPv6 地址
+    OPT = 41, // 选项
+    // ANY = 255 // 任意类型
 };
 
 struct DNSHeader
@@ -63,18 +67,21 @@ struct DNSHeader
     unsigned short arcount; // 附加数
 };
 
-struct DNSQuestion
+struct DNSQuery
 {
+    std::string qname; // 查询名
     unsigned short qtype; // 查询类型
     unsigned short qclass; // 查询类
 };
 
 struct DNSRecord
 {
+    std::string name; // 名字
     unsigned short type; // 类型
     unsigned short _class; // 类
     unsigned int ttl; // 生存时间
     unsigned short rdlength; // 数据长度
+    std::string rdata; // 数据
 };
 
 class DomainName
@@ -91,5 +98,38 @@ public:
 
     std::string get_domain_name(); // 获取域名
     std::string get_domain_name_dns_format(); // 获取域名
+};
+
+class DNS
+{
+private:
+    DNSHeader header; // 头部
+    DNSQuery query; // 单查询
+    std::vector<DNSRecord> record; // 记录
+    std::vector<DNSRecord> ns_record; // 授权记录
+    std::vector<DNSRecord> ar_record; // 附加记录
+
+    Log &log;
+public:
+    DNS(Log &log);
+
+    void set_header(const DNSHeader &header); // 设置头部
+    void set_query(const DNSQuery &query); // 设置查询
+    void add_record(const DNSRecord &record); // 添加记录
+    void add_ns_record(const DNSRecord &record); // 添加授权记录
+    void add_ar_record(const DNSRecord &record); // 添加附加记录
+
+    const DNSHeader &get_header(); // 获取头部
+    const DNSQuery &get_query(); // 获取查询
+    const std::vector<DNSRecord> &get_record(); // 获取记录
+    const std::vector<DNSRecord> &get_ns_record(); // 获取授权记录
+    const std::vector<DNSRecord> &get_ar_record(); // 获取附加记录
+
+    bool illegal(); // 是否非法
+
+    bool is_query(); // 是否是查询
+
+    bool send(UDP_SOCKET &socket, const std::string &ip, int port); // 发送响应
+    bool recv(UDP_SOCKET &socket, std::string &ip, int &port); // 接收查询
 };
 #endif // DNS_SERVER_DNS_H
