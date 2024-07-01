@@ -72,6 +72,7 @@ std::string DomainName::get_domain_name_dns_format()
         temp += (char)domain_name[i].size();
         temp += domain_name[i];
     }
+    temp += (char)0;
     return temp;
 }
 
@@ -307,37 +308,36 @@ bool DNS::recv(UDP_SOCKET &socket, std::string &ip, int &port)
         header.arcount = (data[10] << 8) | data[11]; // 附加数
         // 查询
 
-        std::map<int, std::string> ptr_map; // 指针映射
-
         int index = 12; // 头部长度
 
         std::function<std::string()> get_domain_name = [&]() -> std::string
         {
             std::string temp;
             int ptr_tmp = index;
-            while (data[index] != 0) // 0 结束
+            bool use_ptr = false; // 使用指针
+            if ((data[index] & 0xc0) == 0xc0) // 指针
             {
-                if ((data[index] & 0xc0) == 0xc0) // 指针
-                {
-                    int offset = ((data[index] & 0x3f) << 8) | data[index + 1];
-                    temp = ptr_map[offset];
-                    index += 2; // 指针长度
-                    break;
-                }
-                int count = data[index];
-                temp += data[index];
-                index++; // 长度
+                ptr_tmp = ((data[index] & 0x3f) << 8) | data[index + 1];
+                use_ptr = true;
+            }
+            while (data[ptr_tmp] != 0)
+            {
+                int count = data[ptr_tmp];
+                temp += data[ptr_tmp];
+                ptr_tmp++;
                 for (int i = 0; i < count; i++)
                 {
-                    temp += data[index];
-                    index++;
+                    temp += data[ptr_tmp];
+                    ptr_tmp++;
                 }
             }
-            temp += char(0); // 0 结束
-            index++;         // 0 结束
-            if (ptr_map.find(ptr_tmp) == ptr_map.end())
+            if (!use_ptr)
             {
-                ptr_map[ptr_tmp] = temp;
+                index = ptr_tmp + 1;
+            }
+            else
+            {
+                index += 2;
             }
             return temp;
         };

@@ -1,5 +1,9 @@
 #include "socket.h"
 
+#ifdef _WIN32
+int UDP_SOCKET::instance_count = 0;
+#endif
+
 UDP_SOCKET::UDP_SOCKET(Log &log) : log(log)
 {
     log.debug("Create UDP socket.");
@@ -14,7 +18,7 @@ UDP_SOCKET::UDP_SOCKET(Log &log) : log(log)
     }
     instance_count++;
     s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (socket == -1)
+    if (s == -1)
     {
         log.fatal("Create socket failed.");
         WSACleanup();
