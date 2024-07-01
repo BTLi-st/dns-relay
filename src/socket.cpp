@@ -58,7 +58,7 @@ void UDP_SOCKET::bind(const char *ip, int port)
     if (::bind(s, (struct sockaddr *)&addr, sizeof(addr)) == -1)
     {
         log.fatal("Bind failed.");
-        throw std::runtime_error("Bind failed." + std::to_string(errno));
+        throw std::runtime_error("Bind failed.");
     }
 }
 

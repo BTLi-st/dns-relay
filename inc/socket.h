@@ -6,9 +6,6 @@
 #include <string>
 #include <cstring>
 
-#include <errno.h>
-#include <cstring>
-
 #include "log.h"
 
 #ifdef _WIN32
