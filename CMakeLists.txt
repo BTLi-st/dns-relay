@@ -5,7 +5,7 @@ enable_testing()
 cmake_minimum_required(VERSION 3.5)
 
 # 项目信息
-project(dns_server)
+project(dns_relay_server)
 
 # c++ 版本 20
 set(CMAKE_CXX_STANDARD 20)
