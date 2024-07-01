@@ -60,7 +60,7 @@ int main()
     //     }
     // }
     UDP_SOCKET socket(log);
-    socket.bind("localhost", 12345);
+    socket.bind("localhost", 53);
     while (true)
     {
         std::string ip;
