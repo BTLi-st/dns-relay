@@ -36,15 +36,7 @@ public:
         path /= file;
         return *this;
     }
-
-    std::string operator()() const // 返回路径
-    {
-        if (std::filesystem::is_directory(path))
-            return path.string() + "/";
-        else
-            return path.string();
-    }
-
+    
     std::filesystem::path operator()() // 返回路径
     {
         return path;

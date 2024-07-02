@@ -46,7 +46,7 @@ private:
     std::ofstream file; // 文件流
     std::condition_variable cv; // 条件变量
     std::queue<std::pair<std::string, std::string>> log_queue; // 日志队列，第一个元素为写入控制台的日志，第二个元素为写入文件的日志
-    std::thread log_thread; // 日志线程
+    std::jthread log_thread; // 日志线程
     bool stop = false; // 停止标志
 
     std::string get_time(); // 获取时间

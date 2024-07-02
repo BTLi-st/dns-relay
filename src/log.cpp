@@ -45,7 +45,7 @@ Log::Log(Level level, bool write_to_console)
 #else
     total_level = level;
 #endif
-    log_thread = std::thread(&Log::process_log, this);
+    log_thread = std::jthread(&Log::process_log, this);
 }
 
 Log::Log(FilePath path, Level level, bool write_to_console)
@@ -59,7 +59,7 @@ Log::Log(FilePath path, Level level, bool write_to_console)
 #endif
     file_path = path;
     file.open(file_path(), std::ios::out | std::ios::app);
-    log_thread = std::thread(&Log::process_log, this);
+    log_thread = std::jthread(&Log::process_log, this);
 }
 
 Log::~Log()
