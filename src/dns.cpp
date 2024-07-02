@@ -128,74 +128,15 @@ const std::vector<DNSRecord> &DNS::get_ar_record()
     return ar_record;
 }
 
-bool DNS::illegal()
-{
-    if (header.qr) // 回答
-    {
-        if (record.size() == 0) // 回答记录为空
-        {
-            log.error("DNS Answer Record is empty"); // 回答记录为空
-            return true;
-        }
-    }
-    else // 查询
-    {
-        if (query.qname.size() == 0) // 查询名为空
-        {
-            log.error("DNS Query Name is empty"); // 查询名为空
-            return true;
-        }
-    }
-    if (header.qdcount != 1) // 查询数量不为1
-    {
-        log.error("DNS Query Count is not 1"); // 查询数量不为1
-        return true;
-    }
-    if (header.ancount != record.size()) // 回答数量不等于回答记录数量
-    {
-        log.error("DNS Answer Count is not equal to Answer Record Count"); // 回答数量不等于回答记录数量
-        return true;
-    }
-    if (header.nscount != ns_record.size()) // 授权数量不等于授权记录数量
-    {
-        log.error("DNS Authority Count is not equal to Authority Record Count"); // 授权数量不等于授权记录数量
-        return true;
-    }
-    if (header.arcount != ar_record.size()) // 附加数量不等于附加记录数量
-    {
-        log.error("DNS Additional Count is not equal to Additional Record Count"); // 附加数量不等于附加记录数量
-        return true;
-    }
-    for (int i = 0; i < record.size(); i++)
-    {
-        if (record[i].name.size() == 0) // 名字为空
-        {
-            log.error("DNS Answer Record Name is empty"); // 名字为空
-            return true;
-        }
-        if (record[i].rdata.size() == 0) // 数据为空
-        {
-            log.error("DNS Answer Record Data is empty"); // 数据为空
-            return true;
-        }
-        if (record[i].rdlength != record[i].rdata.size()) // 数据长度不等于数据长度
-        {
-            log.error("DNS Answer Record Data Length is not equal to Data Length"); // 数据长度不等于数据长度
-            return true;
-        }
-    }
-    return false;
-}
-
 bool DNS::is_query()
 {
     return !header.qr;
 }
 
-bool DNS::send(UDP_SOCKET &socket, const std::string &ip, int port)
+void DNS::serialize(std::string &data)
 {
-    std::string data;
-    // 头部
+    log.info("Serialize DNS Data"); // 序列化 DNS 数据
+    data.clear();                    // 清空数据
     data += (char)(header.id >> 8);                                                                    // 标识高位
     data += (char)(header.id & 0xff);                                                                  // 标识低位
     data += (char)(header.qr << 7 | header.opcode << 3 | header.aa << 2 | header.tc << 1 | header.rd); // QR, OPCODE, AA, TC, RD
@@ -255,44 +196,20 @@ bool DNS::send(UDP_SOCKET &socket, const std::string &ip, int port)
     add_record(ns_record);
     // 附加记录
     add_record(ar_record);
-
-    try
-    {
-        socket.sendto(ip, port, data.c_str(), data.size());
-    }
-    catch (const std::exception &e)
-    {
-        log.error("DNS Send failed: {}", e.what());
-        return false;
-    }
-    return true;
+    log.debug("DNS Data Length: {}", data.size()); // DNS 数据长度
 }
 
-bool DNS::recv(UDP_SOCKET &socket, std::string &ip, int &port)
+bool DNS::deserilize(const std::string &data)
 {
+    log.info("Deserilize DNS Data"); // 反序列化 DNS 数据
+    log.debug("DNS Data Length: {}", data.size()); // DNS 数据长度
+    if (data.size() < 12) // 数据长度小于12
+    {
+        log.error("DNS Data Length is less than 12"); // 数据长度小于12
+        return false;
+    }
     try
     {
-        std::string data;
-        const int BUFFER_SIZE = 1024;
-        data.resize(BUFFER_SIZE);
-        std::string _ip;
-        _ip.resize(16);
-        int _port;
-        int len = socket.recvfrom(_ip, _port, data.data(), data.size());
-        if (len == -1)
-        {
-            log.error("DNS Recv failed.");
-            return false;
-        }
-        if (len == 0)
-        {
-            log.error("DNS Recv failed: No data.");
-            return false;
-        }
-        ip = _ip;
-        port = _port;
-        data.resize(len);
-        // 头部
         header.id = (data[0] << 8) | data[1];        // 标识
         header.qr = data[2] >> 7;                    // QR
         header.opcode = (data[2] >> 3) & 0xf;        // OPCODE
@@ -314,7 +231,7 @@ bool DNS::recv(UDP_SOCKET &socket, std::string &ip, int &port)
         {
             std::string temp;
             int ptr_tmp = index;
-            bool use_ptr = false; // 使用指针
+            bool use_ptr = false;             // 使用指针
             if ((data[index] & 0xc0) == 0xc0) // 指针
             {
                 ptr_tmp = ((data[index] & 0x3f) << 8) | data[index + 1];
@@ -392,14 +309,13 @@ bool DNS::recv(UDP_SOCKET &socket, std::string &ip, int &port)
         // 授权记录
         get_record(ns_record, header.nscount);
 
-            // 附加记录
+        // 附加记录
         get_record(ar_record, header.arcount);
-
-        return true;
     }
     catch (const std::exception &e)
     {
-        log.error("DNS Recv failed: {}", e.what());
+        log.error("DNS Data is invalid: {}", e.what()); // DNS 数据无效
         return false;
     }
+    return true;
 }

@@ -8,7 +8,6 @@
 #include <map>
 
 #include "log.h"
-#include "socket.h"
 
 enum TYPE
 {
@@ -36,7 +35,7 @@ enum TYPE
 struct DNSHeader
 {
     unsigned short id; // 标识
-    unsigned char qr : 1; // 查询/响应
+    unsigned char qr : 1; // 查询/响应，0 为查询，1 为响应
     unsigned char opcode : 4; // 操作码
     unsigned char aa : 1; // 授权回答
     unsigned char tc : 1; // 截断
@@ -108,11 +107,9 @@ public:
     const std::vector<DNSRecord> &get_ns_record(); // 获取授权记录
     const std::vector<DNSRecord> &get_ar_record(); // 获取附加记录
 
-    bool illegal(); // 是否非法
-
     bool is_query(); // 是否是查询
 
-    bool send(UDP_SOCKET &socket, const std::string &ip, int port); // 发送响应
-    bool recv(UDP_SOCKET &socket, std::string &ip, int &port); // 接收查询
+    void serialize(std::string &data); // 序列化
+    bool deserilize(const std::string &data); // 反序列化
 };
 #endif // DNS_SERVER_DNS_H

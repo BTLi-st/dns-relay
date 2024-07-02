@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include <unistd.h>
 #endif
 
@@ -43,8 +44,8 @@ public:
 
     void bind(const char *ip, int port); // 绑定
     void bind(std::string ip, int port); // 绑定
-    void sendto(const char *ip, int port, const char *buf, int len); // 发送
-    void sendto(const std::string ip, int port, const char *buf, int len); // 发送
+    bool sendto(const char *ip, int port, const char *buf, int len); // 发送
+    bool sendto(const std::string ip, int port, const char *buf, int len); // 发送
     int recvfrom(char *ip, int *port, char *buf, int len); // 接收
     int recvfrom(std::string &ip, int &port, char *buf, int len); // 接收，不需要给 IP 预留空间
 
