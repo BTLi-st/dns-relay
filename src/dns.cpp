@@ -146,12 +146,38 @@ bool DNS::is_EDNS()
 {
     for (int i = 0; i < ar_record.size(); i++)
     {
-        if (ar_record[i].type == OPT)
+        if (ar_record[i].type == DNS_EDNS)
         {
             return true;
         }
     }
     return false;
+}
+
+bool DNS::update_ttl(int time_used)
+{
+    for (int i = 0; i < record.size(); i++)
+    {
+        if (record[i].ttl > time_used)
+            record[i].ttl -= time_used;
+        else
+            return false;
+    }
+    for (int i = 0; i < ns_record.size(); i++)
+    {
+        if (ns_record[i].ttl > time_used)
+            ns_record[i].ttl -= time_used;
+        else
+            return false;
+    }
+    for (int i = 0; i < ar_record.size(); i++)
+    {
+        if (ar_record[i].ttl > time_used)
+            ar_record[i].ttl -= time_used;
+        else
+            return false;
+    }
+    return true;
 }
 
 void DNS::serialize(std::string &data)
@@ -301,7 +327,7 @@ bool DNS::deserilize(const std::string &data)
                     temp.rdata += data[index];
                     index++;
                 }
-                if (temp.type == OPT)
+                if (temp.type == DNS_EDNS) // EDNS 记录
                 {
                     log.warning("DNS OPT Record is not supported，but it will be stored."); // 不支持 OPT 记录，但会被存储
                     log.info("EDNS is not supported on this server.");                      // 服务器不支持 EDNS
@@ -380,6 +406,16 @@ std::string IP::get_ip()
         {
             temp += '.';
         }
+    }
+    return temp;
+}
+
+std::string IP::get_ip_dns_format()
+{
+    std::string temp;
+    for (int i = 0; i < 4; i++)
+    {
+        temp += (char)ip[i];
     }
     return temp;
 }

@@ -44,8 +44,6 @@ SocketIO::SocketIO(Log &log, std::string ip, int port, std::function<void(std::s
 {
     socket.bind(ip, port);
     this->read_callback = read_callback;
-    read_thread = std::jthread([this] { do_read(); });
-    write_thread = std::jthread([this] { do_write(); });
 }
 
 SocketIO::~SocketIO()
@@ -59,6 +57,12 @@ void SocketIO::write(std::string ip, int port, std::string data)
     write_queue.push({ip, port, data});
     lock.unlock();
     write_queue_cv.notify_one();
+}
+
+void SocketIO::run()
+{
+    read_thread = std::jthread([this] { do_read(); });
+    write_thread = std::jthread([this] { do_write(); });
 }
 
 void SocketIO::stop()

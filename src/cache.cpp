@@ -35,7 +35,7 @@ bool DNSCache::exist(const DNSQuery &query)
     return true;
 }
 
-DNS DNSCache::get(const DNSQuery &query)
+std::pair<std::chrono::time_point<std::chrono::steady_clock>, DNS> DNSCache::get(const DNSQuery &query)
 {
     DomainName domain_name;
     domain_name.set_domain_name_dns_format(query.qname);
@@ -45,11 +45,11 @@ DNS DNSCache::get(const DNSQuery &query)
     if (it == cache.end())
     {
         log.info("Cache not found");
-        return DNS(log);
+        return std::make_pair(std::chrono::time_point<std::chrono::steady_clock>(), DNS(log));
     }
     cache_list.splice(cache_list.begin(), cache_list, it->second); // 将元素移动到链表头部
     cache[query] = cache_list.begin();
-    return cache_list.front().get_dns();
+    return std::make_pair(it->second->get_insert_time(), it->second->get_dns());
 }
 
 void DNSCache::remove(const DNSQuery &query)

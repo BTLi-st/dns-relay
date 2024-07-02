@@ -13,25 +13,17 @@
 
 enum TYPE
 {
-    A = 1, // IPv4 地址
-    // NS = 2, // 名字服务器
-    // MD = 3, // 实际的邮件中转站
-    // MF = 4, // 邮件中转站
-    CNAME = 5, // 规范名称
-    // SOA = 6, // 开始授权
-    // MB = 7, // 负责邮箱的邮箱报文
-    // MG = 8, // 邮箱组成员
-    // MR = 9, // 邮箱重命名
-    // NULL_R = 10, // 空
-    // WKS = 11, // 熟知服务
-    // PTR = 12, // 指针
-    // HINFO = 13, // 主机信息
-    // MINFO = 14, // 邮件信息
-    // MX = 15, // 邮件交换
-    // TXT = 16, // 文本
-    // AAAA = 28, // IPv6 地址
-    OPT = 41, // 选项
-    // ANY = 255 // 任意类型
+    DNS_A = 1, // IPv4 地址
+    DNS_NS = 2, // 名字服务器
+    DNS_CNAME = 5, // 规范名称
+    DNS_SOA = 6, // 开始授权
+    DNS_PTR = 12, // 指针
+    DNS_MX = 15, // 邮件交换
+    DNS_TXT = 16, // 文本
+    DNS_AAAA = 28, // IPv6 地址
+    DNS_SRV = 33, // 服务
+    DNS_EDNS = 41, // 扩展
+    DNS_ANY = 255 // 任何类型
 };
 
 struct DNSHeader
@@ -97,6 +89,7 @@ public:
     void set_ip(const std::array<unsigned char, 4> &ip); // 设置 IP
 
     std::string get_ip(); // 获取 IP
+    std::string get_ip_dns_format(); // 获取 IP
     std::array<unsigned char, 4> get_ip_array(); // 获取 IP
 };
 
@@ -129,6 +122,8 @@ public:
     bool is_query(); // 是否是查询
 
     bool is_EDNS(); // 是否是 EDNS
+
+    bool update_ttl(int time_used); // 更新 TTL
 
     void serialize(std::string &data); // 序列化
     bool deserilize(const std::string &data); // 反序列化

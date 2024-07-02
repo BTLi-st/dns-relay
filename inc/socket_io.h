@@ -31,5 +31,6 @@ public:
     ~SocketIO(); // 析构函数
 
     void write(std::string ip, int port, std::string data); // 写
+    void run(); // 运行
     void stop(); // 停止
 };

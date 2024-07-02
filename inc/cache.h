@@ -8,6 +8,7 @@
 #include <list>
 #include <shared_mutex>
 #include <vector>
+#include <tuple>
 
 #include "log.h"
 #include "dns.h"
@@ -41,7 +42,7 @@ public:
 
     void add(const DNSQuery &query, const DNS &dns); // 添加
     bool exist(const DNSQuery &query); // 是否存在
-    DNS get(const DNSQuery &query); // 获取
+    std::pair<std::chrono::time_point<std::chrono::steady_clock>, DNS> get(const DNSQuery &query); // 获取
     void remove(const DNSQuery &query); // 移除
     void clear(); // 清空
     void clean(); // 清理
