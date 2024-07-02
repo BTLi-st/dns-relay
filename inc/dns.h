@@ -56,6 +56,8 @@ struct DNSQuery
     std::string qname; // 查询名
     unsigned short qtype; // 查询类型
     unsigned short qclass; // 查询类
+
+    auto operator<=>(const DNSQuery &other) const = default;
 };
 
 struct DNSRecord
@@ -110,6 +112,7 @@ private:
     Log &log;
 public:
     DNS(Log &log);
+    DNS(const DNS &dns); // 拷贝构造函数
 
     void set_header(const DNSHeader &header); // 设置头部
     void set_query(const DNSQuery &query); // 设置查询
@@ -124,6 +127,8 @@ public:
     const std::vector<DNSRecord> &get_ar_record(); // 获取附加记录
 
     bool is_query(); // 是否是查询
+
+    bool is_EDNS(); // 是否是 EDNS
 
     void serialize(std::string &data); // 序列化
     bool deserilize(const std::string &data); // 反序列化

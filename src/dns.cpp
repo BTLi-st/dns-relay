@@ -78,6 +78,15 @@ std::string DomainName::get_domain_name_dns_format()
 
 DNS::DNS(Log &log) : log(log) {}
 
+DNS::DNS(const DNS &dns): log(dns.log)
+{
+    header = dns.header;
+    query = dns.query;
+    record = dns.record;
+    ns_record = dns.ns_record;
+    ar_record = dns.ar_record;
+}
+
 void DNS::set_header(const DNSHeader &header)
 {
     this->header = header;
@@ -131,6 +140,18 @@ const std::vector<DNSRecord> &DNS::get_ar_record()
 bool DNS::is_query()
 {
     return !header.qr;
+}
+
+bool DNS::is_EDNS()
+{
+    for (int i = 0; i < ar_record.size(); i++)
+    {
+        if (ar_record[i].type == OPT)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void DNS::serialize(std::string &data)
