@@ -319,3 +319,51 @@ bool DNS::deserilize(const std::string &data)
     }
     return true;
 }
+
+bool IP::set_ip(const std::string &ip)
+{
+    std::string temp;
+    std::regex ipv4Regex("^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\."
+                         "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\."
+                         "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\."
+                         "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+    if (!std::regex_match(ip, ipv4Regex))
+        return false;
+    std::istringstream iss(ip);
+    for (int i = 0; i < 4; i++)
+    {
+        int temp;
+        iss >> temp;
+        this->ip[i] = temp;
+        if (i != 3)
+        {
+            char dot;
+            iss >> dot;
+        }
+    }
+    return true;
+}
+
+void IP::set_ip(const std::array<unsigned char, 4> &ip)
+{
+    this->ip = ip;
+}
+
+std::string IP::get_ip()
+{
+    std::string temp;
+    for (int i = 0; i < 4; i++)
+    {
+        temp += std::to_string(ip[i]);
+        if (i != 3)
+        {
+            temp += '.';
+        }
+    }
+    return temp;
+}
+
+std::array<unsigned char, 4> IP::get_ip_array()
+{
+    return ip;
+}

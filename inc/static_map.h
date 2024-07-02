@@ -6,18 +6,20 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <chrono>
 #include <shared_mutex>
 #include <fstream>
 #include <atomic>
 
 #include "log.h"
+#include "dns.h"
 #include "file.hpp"
 
 class StaticIPMap
 {
 private:
     Log &log; // 日志
-    std::unordered_map<std::string, std::vector<std::string>> IPmap; // IP映射
+    std::unordered_map<std::string, std::vector<IP>> IPmap; // IP 映射
     std::shared_mutex mutex; // 互斥锁
     FilePath file_path; // 文件路径
     std::jthread watch_thread; // 监视线程
@@ -30,7 +32,7 @@ public:
     StaticIPMap(Log &log, FilePath file_path); // 构造函数
     ~StaticIPMap(); // 析构函数
 
-    std::vector<std::string> get(const std::string &domain_name); // 获取
+    std::vector<IP> get(const std::string &domain_name); // 获取 IP
 };
 
 #endif

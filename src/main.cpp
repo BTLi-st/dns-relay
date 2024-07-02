@@ -104,7 +104,7 @@ int main()
         auto ips = map.get("www.baidu.com");
         for (auto &ip : ips)
         {
-            log.info("www.baidu.com: {}", ip);
+            log.info("www.baidu.com: {}", ip.get_ip());
         }
     }
     return 0;

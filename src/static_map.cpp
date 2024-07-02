@@ -51,10 +51,16 @@ void StaticIPMap::load()
                 log.error("Invalid line on line {}", line_number);
                 continue;
             }
-        if (IPmap.find(domain_name) != IPmap.end())
-            IPmap[domain_name].push_back(ip);
+        IP ip_obj;
+        if (!ip_obj.set_ip(ip))
+        {
+            log.error("Invalid ip on line {}", line_number);
+            continue;
+        }
+        if (IPmap.find(domain_name) == IPmap.end())
+            IPmap[domain_name] = {ip_obj};
         else
-            IPmap[domain_name] = {ip};
+            IPmap[domain_name].push_back(ip_obj);
     }
     file.close();
     log.info("Load ip map success.");
@@ -82,7 +88,7 @@ StaticIPMap::~StaticIPMap()
     running = false;
 }
 
-std::vector<std::string> StaticIPMap::get(const std::string &domain_name)
+std::vector<IP> StaticIPMap::get(const std::string &domain_name)
 {
     std::shared_lock<std::shared_mutex> lock(mutex);
     if (IPmap.find(domain_name) == IPmap.end())

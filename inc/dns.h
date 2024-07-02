@@ -4,6 +4,8 @@
 
 #include <string>
 #include <vector>
+#include <array>
+#include <regex>
 #include <functional>
 #include <map>
 
@@ -80,6 +82,20 @@ public:
 
     std::string get_domain_name(); // 获取域名
     std::string get_domain_name_dns_format(); // 获取域名
+};
+
+class IP
+{
+private:
+    std::array<unsigned char, 4> ip;
+public:
+    IP() = default;
+
+    bool set_ip(const std::string &ip); // 设置 IP
+    void set_ip(const std::array<unsigned char, 4> &ip); // 设置 IP
+
+    std::string get_ip(); // 获取 IP
+    std::array<unsigned char, 4> get_ip_array(); // 获取 IP
 };
 
 class DNS
