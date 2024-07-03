@@ -16,10 +16,10 @@ int main(int argc, char* argv[])
     if (argc > 1)
     {
         int tmp = std::stoi(argv[1]);
-        if (tmp >= DBG && tmp <= CLOSE)
+        if (tmp >= 0 && tmp <= 5)
             log_level = static_cast<Level>(tmp);
         else
-            std::cout << "Invalid log level, using INFO" << std::endl;
+            std::cout << "Invalid log level, using INFO" << std::endl,
             log_level = INFO;
     }
     if (argc > 2)

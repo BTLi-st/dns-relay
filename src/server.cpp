@@ -142,6 +142,7 @@ void DNSRelayServer::handle_response(std::string ip, int port, std::shared_ptr<D
     }
     std::string data;
     dns->serialize(data);
+    log->debug("data len: {}", data.size());
     socket_io.write(ip, port, data);
 }
 
@@ -238,9 +239,9 @@ void DNSRelayServer::handle_query_ptr(std::string ip, int port, std::shared_ptr<
         record.type = DNS_PTR;
         record._class = 1;
         record.ttl = 60;
-        record.rdlength = 13;
         DomainName server_name;
         server_name.set_domain_name("localhost.local");
+        record.rdlength = server_name.get_domain_name_dns_format().size();
         record.rdata = server_name.get_domain_name_dns_format();
         response->add_record(record);
         std::string data;

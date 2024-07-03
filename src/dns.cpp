@@ -184,7 +184,7 @@ bool DNS::update_ttl(int time_used)
 void DNS::serialize(std::string &data)
 {
     log->info("Serialize DNS Data");                                                                    // 序列化 DNS 数据
-    data.clear();                                                                                      // 清空数据
+    data = "";                                                                                 // 清空数据
     data += (char)(header.id >> 8);                                                                    // 标识高位
     data += (char)(header.id & 0xff);                                                                  // 标识低位
     data += (char)(header.qr << 7 | header.opcode << 3 | header.aa << 2 | header.tc << 1 | header.rd); // QR, OPCODE, AA, TC, RD
@@ -198,11 +198,9 @@ void DNS::serialize(std::string &data)
     data += (char)(header.arcount >> 8);                                                               // 附加数高位
     data += (char)(header.arcount & 0xff);                                                             // 附加数低位
 
-    std::map<std::string, unsigned short> ptr_map; // 指针映射
     // 查询
     if (header.qdcount == 1) // 问题数为1
     {
-        ptr_map[query.qname] = data.size(); // 记录指针
         data += query.qname;
         data += (char)(query.qtype >> 8);    // 查询类型高位
         data += (char)(query.qtype & 0xff);  // 查询类型低位
@@ -214,16 +212,7 @@ void DNS::serialize(std::string &data)
     {
         for (int i = 0; i < record.size(); i++)
         {
-            if (ptr_map.find(record[i].name) == ptr_map.end())
-            {
-                ptr_map[record[i].name] = data.size(); // 记录指针
-                data += record[i].name;
-            }
-            else
-            {
-                data += (char)(0xc0 | (ptr_map[record[i].name] >> 8)); // 指针高位
-                data += (char)(ptr_map[record[i].name] & 0xff);        // 指针低位
-            }
+            data += record[i].name;
             data += (char)(record[i].type >> 8);       // 类型高位
             data += (char)(record[i].type & 0xff);     // 类型低位
             data += (char)(record[i]._class >> 8);     // 类高位
@@ -237,7 +226,6 @@ void DNS::serialize(std::string &data)
             data += record[i].rdata;
         }
     };
-
     // 记录
     add_record(record);
     // 授权记录
@@ -278,33 +266,26 @@ bool DNS::deserilize(const std::string &data)
         std::function<std::string()> get_domain_name = [&]() -> std::string
         {
             std::string temp;
-            int ptr_tmp = index;
-            bool use_ptr = false;             // 使用指针
             if ((data[index] & 0xc0) == 0xc0) // 指针
             {
-                ptr_tmp = (static_cast<unsigned char>(data[index]) & 0x3f) << 8 | static_cast<unsigned char>(data[index + 1]);
-                use_ptr = true;
+                temp += data[index];
+                temp += data[index + 1];
+                index += 2;
+                return temp;
             }
-            while (data[ptr_tmp] != 0)
+            while (data[index] != 0)
             {
-                int count = static_cast<unsigned char>(data[ptr_tmp]);
-                temp += data[ptr_tmp];
-                ptr_tmp++;
+                int count = static_cast<unsigned char>(data[index]);
+                temp += data[index];
+                index++;
                 for (int i = 0; i < count; i++)
                 {
-                    temp += data[ptr_tmp];
-                    ptr_tmp++;
+                    temp += data[index];
+                    index++;
                 }
             }
             temp += char(0);
-            if (!use_ptr)
-            {
-                index = ptr_tmp + 1;
-            }
-            else
-            {
-                index += 2;
-            }
+            index++;
             return temp;
         };
 
@@ -359,6 +340,12 @@ bool DNS::deserilize(const std::string &data)
 
         // 附加记录
         get_record(ar_record, header.arcount);
+
+        if (index != data.size())
+        {
+            log->error("DNS Data is invalid"); // DNS 数据无效
+            return false;
+        }
     }
     catch (const std::exception &e)
     {
