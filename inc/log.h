@@ -25,7 +25,8 @@ enum Level
     INFO,
     WARNING,
     ERR,
-    FATAL
+    FATAL,
+    CLOSE
 };
 
 class Log

@@ -40,11 +40,7 @@ Log::Log(Level level, bool write_to_console)
 {
     write_to_file = false;
     this->write_to_console = write_to_console;
-#if defined(DEBUG) || defined(_DEBUG)
-    total_level = DBG;
-#else
     total_level = level;
-#endif
     log_thread = std::jthread(&Log::process_log, this);
 }
 
@@ -52,11 +48,7 @@ Log::Log(FilePath path, Level level, bool write_to_console)
 {
     write_to_file = true;
     this->write_to_console = write_to_console;
-#if defined(DEBUG) || defined(_DEBUG)
-    total_level = DBG;
-#else
     total_level = level;
-#endif
     file_path = path;
     file.open(file_path(), std::ios::out | std::ios::app);
     log_thread = std::jthread(&Log::process_log, this);
