@@ -368,6 +368,27 @@ bool DNS::deserilize(const std::string &data)
     return true;
 }
 
+unsigned int DNS::get_ttl() const
+{
+    unsigned int ttl = std::numeric_limits<unsigned int>::max();
+    for (int i = 0; i < record.size(); i++)
+    {
+        if (record[i].ttl < ttl)
+            ttl = record[i].ttl;
+    }
+    for (int i = 0; i < ns_record.size(); i++)
+    {
+        if (ns_record[i].ttl < ttl)
+            ttl = ns_record[i].ttl;
+    }
+    for (int i = 0; i < ar_record.size(); i++)
+    {
+        if (ar_record[i].ttl < ttl)
+            ttl = ar_record[i].ttl;
+    }
+    return ttl;
+}
+
 bool IP::set_ip(const std::string &ip)
 {
     std::string temp;

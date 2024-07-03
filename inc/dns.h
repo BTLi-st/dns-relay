@@ -128,5 +128,7 @@ public:
 
     void serialize(std::string &data); // 序列化
     bool deserilize(const std::string &data); // 反序列化
+
+    unsigned int get_ttl() const; // 获取 TTL
 };
 #endif // DNS_SERVER_DNS_H

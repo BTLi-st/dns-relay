@@ -101,9 +101,19 @@ int UDP_SOCKET::recvfrom(char *ip, int *port, char *buf, int len)
     struct sockaddr_in addr;                                                   // 地址
     socklen_t addr_len = sizeof(addr);                                         // 地址长度
     int ret = ::recvfrom(s.load(), buf, len, 0, (struct sockaddr *)&addr, &addr_len); // 接收数据
+    if (ret == -1)
+    {
+        #ifdef _WIN32
+        log->error("Socket recvfrom failed: {}", std::to_string(WSAGetLastError()));
+        #else
+        log->error("Socket recvfrom failed: {}", std::to_string(errno));
+        #endif
+        return -1;
+    }
     *port = ntohs(addr.sin_port);                                              // 端口
     strcpy(ip, inet_ntoa(addr.sin_addr));                                      // IP 地址
     log->debug("Recv from {}:{}", ip, *port);
+    
     return ret;
 }
 

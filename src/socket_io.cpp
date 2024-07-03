@@ -17,7 +17,7 @@ void SocketIO::do_read()
         {
             if (!socket.is_valid()) // socket 关闭或无效
                 return;
-            log->error("recvfrom error: {}", strerror(errno));
+            log->info("continue to read...");
         }
     }
 }
@@ -37,7 +37,9 @@ void SocketIO::do_write()
         lock.unlock();
         if (!socket.sendto(ip, port, data.c_str(), data.size()))
         {
-            log->error("sendto error: {}", strerror(errno));
+            if (!socket.is_valid()) // socket 关闭或无效
+                return;
+            log->info("continue to write...");
         }
     }
 }

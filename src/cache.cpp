@@ -27,9 +27,17 @@ void DNSCache::add(const DNSQuery &query, const DNS &dns)
 bool DNSCache::exist(const DNSQuery &query)
 {
     std::shared_lock lock(mutex);
-    if (cache.find(query) == cache.end())
+    auto it = cache.find(query);
+    if (it == cache.end())
     {
         log->info("Cache not found");
+        return false;
+    }
+    if (it->second->is_timeout())
+    {
+        log->info("Cache timeout");
+        cache_list.erase(it->second);
+        cache.erase(it);
         return false;
     }
     return true;
@@ -111,4 +119,12 @@ const std::chrono::time_point<std::chrono::steady_clock> &CacheValue::get_insert
     return insert_time;
 }
 
-CacheValue::CacheValue(const DNSQuery &query, const DNS &dns) : query(query), dns(dns), insert_time(std::chrono::steady_clock::now()) {}
+CacheValue::CacheValue(const DNSQuery &query, const DNS &dns) : query(query), dns(dns), insert_time(std::chrono::steady_clock::now())
+{
+    ttl = std::chrono::seconds(dns.get_ttl());
+}
+
+bool CacheValue::is_timeout()
+{
+    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - insert_time).count() > ttl.count();
+}

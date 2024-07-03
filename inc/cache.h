@@ -21,12 +21,14 @@ private:
     DNS dns; // DNS
 
     std::chrono::time_point<std::chrono::steady_clock> insert_time; // 插入时间
+    std::chrono::seconds ttl; // TTL
 public:
     const DNSQuery &get_query(); // 获取查询
     const DNS &get_dns(); // 获取 DNS
     const std::chrono::time_point<std::chrono::steady_clock> &get_insert_time(); // 获取插入时间
 
     CacheValue(const DNSQuery &query, const DNS &dns); // 构造函数
+    bool is_timeout(); // 是否超时
 };
 
 class DNSCache
