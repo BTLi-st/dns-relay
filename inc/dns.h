@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <memory>
 #include <regex>
 #include <functional>
 #include <map>
@@ -102,9 +103,9 @@ private:
     std::vector<DNSRecord> ns_record; // 授权记录
     std::vector<DNSRecord> ar_record; // 附加记录
 
-    Log &log;
+    std::shared_ptr<Log> log; // 日志
 public:
-    DNS(Log &log);
+    DNS(std::shared_ptr<Log> log); // 构造函数
     DNS(const DNS &dns); // 拷贝构造函数
 
     void set_header(const DNSHeader &header); // 设置头部

@@ -4,7 +4,7 @@ std::string Log::get_time()
 {
     using namespace std::chrono;
     auto now = system_clock::now(); // 获取当前时间
-    auto local_now = zoned_time{current_zone(), floor<seconds>(now)}; // 获取本地时间
+    auto local_now = zoned_time{locate_zone("Asia/Shanghai"), floor<seconds>(now)}; // 获取本地时间
     return std::format("[{:%Y-%m-%d %H:%M:%S}]", local_now.get_local_time()); // 格式化时间
 }
 

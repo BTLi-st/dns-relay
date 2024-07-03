@@ -5,6 +5,7 @@
 #include <functional>
 #include <atomic>
 #include <queue>
+#include <memory>
 #include <tuple>
 #include <chrono>
 
@@ -14,7 +15,7 @@
 class SocketIO
 {
 private:
-    Log &log; // 日志
+    std::shared_ptr<Log> log; // 日志
     UDP_SOCKET socket; // 套接字
     std::jthread read_thread; // 读线程
     std::jthread write_thread; // 写线程
@@ -27,10 +28,12 @@ private:
     void do_read(); // 读
     void do_write(); // 写
 public:
-    SocketIO(Log &log, std::string ip, int port, std::function<void(std::string, int, std::string)> read_callback); // 构造函数
+    SocketIO(std::shared_ptr<Log> log, std::string ip, int port, std::function<void(std::string, int, std::string)> read_callback); // 构造函数
     ~SocketIO(); // 析构函数
 
     void write(std::string ip, int port, std::string data); // 写
     void run(); // 运行
     void stop(); // 停止
+
+    bool is_running() const { return running.load(); } // 是否运行
 };

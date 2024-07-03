@@ -1,6 +1,6 @@
 #include "server.h"
 
-DNSRelayServer::DNSRelayServer(Log &log, std::string ip, int port, FilePath map_file, int pool_size) : log(log), socket_io(log, ip, port, [this](std::string ip, int port, std::string data)
+DNSRelayServer::DNSRelayServer(std::shared_ptr<Log> log, std::string ip, int port, FilePath map_file, int pool_size) : log(log), socket_io(log, ip, port, [this](std::string ip, int port, std::string data)
                                                                                                                            { handle_info(ip, port, data); }),
                                                                                                        pool(pool_size), cache(log), map(log, map_file)
 {
@@ -8,17 +8,20 @@ DNSRelayServer::DNSRelayServer(Log &log, std::string ip, int port, FilePath map_
 
 DNSRelayServer::~DNSRelayServer()
 {
-    stop();
+    if (running.load())
+        stop();
 }
 
 void DNSRelayServer::set_server(std::string ip, int port)
 {
+    log->debug("Set server: {}:{}", ip, port);
     server_ip = ip;
     server_port = port;
 }
 
 void DNSRelayServer::run()
 {
+    log->info("Start DNS relay server.");
     running.store(true);
     socket_io.run();
     clean_thread = std::jthread([this]
@@ -28,22 +31,28 @@ void DNSRelayServer::run()
 void DNSRelayServer::stop()
 {
     running.store(false);
+    cv.notify_one();
     socket_io.stop();
     pool.stop();
-    clean_thread.join();
+    log->debug("pool stopped");
+    if (clean_thread.joinable())
+        clean_thread.join();
+    log->info("DNS relay server stopped successfully.");
 }
 
 void DNSRelayServer::clean()
 {
-    while (running.load()) // 运行状态
+    std::unique_lock<std::mutex> lock(cv_mutex);
+    while (true) // 运行状态
     {
-        std::this_thread::sleep_for(std::chrono::seconds(60));
+        if (cv.wait_for(lock, std::chrono::seconds(60), [this] { return !running.load(); })) // 等待
+            break;
         std::unique_lock<std::shared_mutex> lock(queries_mutex);
         for (auto it = queries.begin(); it != queries.end();)
         {
-            if (it->second.is_timeout(std::chrono::seconds(10)))
+            if (it->second.is_timeout(std::chrono::seconds(2)))
             {
-                log.info("Query timeout: {}", it->first);
+                log->info("Query timeout: {}", it->first);
                 queries.erase(it++);
             }
             else
@@ -56,12 +65,14 @@ void DNSRelayServer::clean()
 
 void DNSRelayServer::handle_info(std::string ip, int port, std::string data)
 {
+    log->debug("read from {}:{}, len: {}", ip, port, data.size());
     auto dns = std::make_shared<DNS>(log);
     if (!dns->deserilize(data))
     {
-        log.error("deserilize error");
+        log->error("deserilize error");
         return;
     }
+    log->info("deserilize success, is query: {}", dns->is_query() ? "true" : "false");
     if (dns->is_query())
     {
         pool.add_task(std::bind(&DNSRelayServer::handle_query, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), ip, port, dns);
@@ -76,6 +87,7 @@ void DNSRelayServer::handle_query(std::string ip, int port, std::shared_ptr<DNS>
 {
     if (dns->is_EDNS()) // EDNS 查询
     {
+        log->info("EDNS query, will not cache");
         handle_edns_query(ip, port, dns); // 处理 EDNS 查询
     }
     else // 非 EDNS 查询
@@ -100,18 +112,19 @@ void DNSRelayServer::handle_response(std::string ip, int port, std::shared_ptr<D
 {
     if (ip != server_ip || port != server_port) // 不是服务器响应
     {
-        log.error("response from unknown server");
+        log->error("response from unknown server");
         return;
     }
-    std::unique_lock<std::shared_mutex> lock(queries_mutex);
+    std::unique_lock<std::shared_mutex> lock(queries_mutex); // 加锁
     auto header = dns->get_header();
     if (queries.find(header.id) == queries.end()) // ID 不在查询列表
     {
-        log.error("response id is not in queries");
+        log->error("response id is not in queries: {}", header.id);
         return;
     }
     auto query_store = queries[header.id];
-    queries.erase(header.id);
+    queries.erase(header.id); // 删除查询
+    id_gen.release(header.id); // 释放 ID
     lock.unlock(); // 解锁
     header.id = query_store.dns->get_header().id;
     dns->set_header(header);
@@ -119,7 +132,7 @@ void DNSRelayServer::handle_response(std::string ip, int port, std::shared_ptr<D
     port = query_store.port;
     if (dns->is_EDNS()) // EDNS 响应
     {
-        log.info("EDNS response, will not cache");
+        log->info("EDNS response, will not cache");
     }
     else
     {
@@ -134,28 +147,35 @@ void DNSRelayServer::handle_response(std::string ip, int port, std::shared_ptr<D
 
 void DNSRelayServer::relay(std::string ip, int port, std::shared_ptr<DNS> dns)
 {
-    std::unique_lock<std::shared_mutex> lock(queries_mutex);
+    log->info("relay to {}:{}", server_ip, server_port);
+    std::unique_lock<std::shared_mutex> lock(queries_mutex); // 加锁
     auto new_id = id_gen.generate();
+    log->debug("new id: {}", new_id);
     queries[new_id] = QueryStore(dns, ip, port);
-    auto header = dns->get_header();
+    lock.unlock(); // 解锁
+    auto send_dns = std::make_shared<DNS>(*dns);
+    auto header = send_dns->get_header();
     header.id = new_id;
-    dns->set_header(header);
+    send_dns->set_header(header);
     std::string data;
-    dns->serialize(data);
+    send_dns->serialize(data);
     socket_io.write(server_ip, server_port, data);
     return;
 }
 
 void DNSRelayServer::handle_query_A(std::string ip, int port, std::shared_ptr<DNS> dns)
 {
+    log->debug("handle query A");
     auto query = dns->get_query();
     DomainName domain_name;
     domain_name.set_domain_name_dns_format(query.qname);
+    log->info("try to query from local map: {}" , domain_name.get_domain_name());
     auto ip_list = map.get(domain_name.get_domain_name());
     if (!ip_list.empty()) // 有 IP 映射
     {
         if (ip_list.size() == 1 && ip_list[0].get_ip() == "0.0.0.0") // 拦截
         {
+            log->info("intercept: {}", domain_name.get_domain_name()); // 拦截
             auto response = std::make_shared<DNS>(log);
             auto header = dns->get_header();
             header.qr = 1; // 响应
@@ -169,6 +189,7 @@ void DNSRelayServer::handle_query_A(std::string ip, int port, std::shared_ptr<DN
         }
         else // 有 IP 映射
         {
+            log->debug("local map hit: {}", domain_name.get_domain_name());
             auto response = std::make_shared<DNS>(log);
             auto header = dns->get_header();
             header.qr = 1; // 响应
@@ -198,9 +219,12 @@ void DNSRelayServer::handle_query_A(std::string ip, int port, std::shared_ptr<DN
 void DNSRelayServer::handle_query_ptr(std::string ip, int port, std::shared_ptr<DNS> dns)
 {
     auto query = dns->get_query();
-    auto domain_name = DomainName(query.qname);
+    auto domain_name = DomainName();
+    domain_name.set_domain_name_dns_format(query.qname);
+    log->debug("handle query PTR: {}", domain_name.get_domain_name());
     if (domain_name.get_domain_name() == "1.0.0.127.in-addr.arpa") // 本地查询
     {
+        log->info("local query: {}", domain_name.get_domain_name());
         auto response = std::make_shared<DNS>(log);
         auto header = dns->get_header();
         header.qr = 1; // 响应
@@ -215,7 +239,9 @@ void DNSRelayServer::handle_query_ptr(std::string ip, int port, std::shared_ptr<
         record._class = 1;
         record.ttl = 60;
         record.rdlength = 13;
-        record.rdata = "localhost.local";
+        DomainName server_name;
+        server_name.set_domain_name("localhost.local");
+        record.rdata = server_name.get_domain_name_dns_format();
         response->add_record(record);
         std::string data;
         response->serialize(data);
@@ -229,9 +255,11 @@ void DNSRelayServer::handle_query_other(std::string ip, int port, std::shared_pt
 {
     if (!cache.exist(dns->get_query())) // 不存在缓存
     {
+        log->debug("Query not in cache");
         relay(ip, port, dns); // 转发
         return;
     }
+    log->debug("Query in cache");
     auto query = dns->get_query();
     auto [insert_time, cache_dns] = cache.get(query);
     auto time_passed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - insert_time); // 时间差
@@ -244,7 +272,7 @@ void DNSRelayServer::handle_query_other(std::string ip, int port, std::shared_pt
     response->set_header(header);
     if (!response->update_ttl(time_passed.count())) // 更新 TTL
     {
-        log.error("update ttl error");
+        log->error("update ttl error");
         cache.remove(query);
         relay(ip, port, dns); // 转发
         return;

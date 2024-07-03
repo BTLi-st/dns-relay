@@ -6,6 +6,7 @@
 #include <chrono>
 #include <string>
 #include <list>
+#include <memory>
 #include <shared_mutex>
 #include <vector>
 #include <tuple>
@@ -31,14 +32,14 @@ public:
 class DNSCache
 {
 private:
-    Log &log; // 日志
+    std::shared_ptr<Log> log; // 日志
     std::map<DNSQuery, std::list<CacheValue>::iterator> cache; // 缓存
     std::list<CacheValue> cache_list; // 缓存列表
     std::shared_mutex mutex; // 互斥锁
 
     size_t max_size; // 最大大小
 public:
-    DNSCache(Log &log, size_t max_size = 1000); // 构造函数
+    DNSCache(std::shared_ptr<Log> log, size_t max_size = 1000); // 构造函数
 
     void add(const DNSQuery &query, const DNS &dns); // 添加
     bool exist(const DNSQuery &query); // 是否存在

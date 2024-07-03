@@ -24,7 +24,8 @@ ThreadPool::ThreadPool(size_t size)
 
 ThreadPool::~ThreadPool()
 {
-    stop();
+    if (running.load())
+        stop();
 }
 
 void ThreadPool::stop()

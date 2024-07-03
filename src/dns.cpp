@@ -76,9 +76,10 @@ std::string DomainName::get_domain_name_dns_format()
     return temp;
 }
 
-DNS::DNS(Log &log) : log(log) {}
+DNS::DNS(std::shared_ptr<Log> log) : log(log) {}
 
-DNS::DNS(const DNS &dns): log(dns.log)
+
+DNS::DNS(const DNS &dns) : log(dns.log)
 {
     header = dns.header;
     query = dns.query;
@@ -182,8 +183,8 @@ bool DNS::update_ttl(int time_used)
 
 void DNS::serialize(std::string &data)
 {
-    log.info("Serialize DNS Data"); // 序列化 DNS 数据
-    data.clear();                    // 清空数据
+    log->info("Serialize DNS Data");                                                                    // 序列化 DNS 数据
+    data.clear();                                                                                      // 清空数据
     data += (char)(header.id >> 8);                                                                    // 标识高位
     data += (char)(header.id & 0xff);                                                                  // 标识低位
     data += (char)(header.qr << 7 | header.opcode << 3 | header.aa << 2 | header.tc << 1 | header.rd); // QR, OPCODE, AA, TC, RD
@@ -243,33 +244,33 @@ void DNS::serialize(std::string &data)
     add_record(ns_record);
     // 附加记录
     add_record(ar_record);
-    log.debug("DNS Data Length: {}", data.size()); // DNS 数据长度
+    log->debug("DNS Data Length: {}", data.size()); // DNS 数据长度
 }
 
 bool DNS::deserilize(const std::string &data)
 {
-    log.info("Deserilize DNS Data"); // 反序列化 DNS 数据
-    log.debug("DNS Data Length: {}", data.size()); // DNS 数据长度
-    if (data.size() < 12) // 数据长度小于12
+    log->info("Deserilize DNS Data");               // 反序列化 DNS 数据
+    log->debug("DNS Data Length: {}", data.size()); // DNS 数据长度
+    if (data.size() < 12)                          // 数据长度小于12
     {
-        log.error("DNS Data Length is less than 12"); // 数据长度小于12
+        log->error("DNS Data Length is less than 12"); // 数据长度小于12
         return false;
     }
     try
     {
-        header.id = (data[0] << 8) | data[1];        // 标识
-        header.qr = data[2] >> 7;                    // QR
-        header.opcode = (data[2] >> 3) & 0xf;        // OPCODE
-        header.aa = (data[2] >> 2) & 0x1;            // AA
-        header.tc = (data[2] >> 1) & 0x1;            // TC
-        header.rd = data[2] & 0x1;                   // RD
-        header.ra = data[3] >> 7;                    // RA
-        header.z = (data[3] >> 4) & 0x7;             // Z
-        header.rcode = data[3] & 0xf;                // RCODE
-        header.qdcount = (data[4] << 8) | data[5];   // 问题数
-        header.ancount = (data[6] << 8) | data[7];   // 回答数
-        header.nscount = (data[8] << 8) | data[9];   // 授权数
-        header.arcount = (data[10] << 8) | data[11]; // 附加数
+        header.id = (static_cast<unsigned char>(data[0]) << 8) | static_cast<unsigned char>(data[1]);        // 标识
+        header.qr = (static_cast<unsigned char>(data[2]) >> 7) & 0x1;                                          // QR
+        header.opcode = (static_cast<unsigned char>(data[2]) >> 3) & 0xf;                                       // OPCODE
+        header.aa = (static_cast<unsigned char>(data[2]) >> 2) & 0x1;                                           // AA
+        header.tc = (static_cast<unsigned char>(data[2]) >> 1) & 0x1;                                           // TC
+        header.rd = static_cast<unsigned char>(data[2]) & 0x1;                                                 // RD
+        header.ra = (static_cast<unsigned char>(data[3]) >> 7) & 0x1;                                           // RA
+        header.z = (static_cast<unsigned char>(data[3]) >> 4) & 0x7;                                            // Z
+        header.rcode = static_cast<unsigned char>(data[3]) & 0xf;                                               // RCODE
+        header.qdcount = (static_cast<unsigned char>(data[4]) << 8) | static_cast<unsigned char>(data[5]);   // 问题数
+        header.ancount = (static_cast<unsigned char>(data[6]) << 8) | static_cast<unsigned char>(data[7]);   // 回答数
+        header.nscount = (static_cast<unsigned char>(data[8]) << 8) | static_cast<unsigned char>(data[9]);   // 授权数
+        header.arcount = (static_cast<unsigned char>(data[10]) << 8) | static_cast<unsigned char>(data[11]); // 附加数
         // 查询
 
         int index = 12; // 头部长度
@@ -281,12 +282,12 @@ bool DNS::deserilize(const std::string &data)
             bool use_ptr = false;             // 使用指针
             if ((data[index] & 0xc0) == 0xc0) // 指针
             {
-                ptr_tmp = ((data[index] & 0x3f) << 8) | data[index + 1];
+                ptr_tmp = (static_cast<unsigned char>(data[index]) & 0x3f) << 8 | static_cast<unsigned char>(data[index + 1]);
                 use_ptr = true;
             }
             while (data[ptr_tmp] != 0)
             {
-                int count = data[ptr_tmp];
+                int count = static_cast<unsigned char>(data[ptr_tmp]);
                 temp += data[ptr_tmp];
                 ptr_tmp++;
                 for (int i = 0; i < count; i++)
@@ -314,14 +315,14 @@ bool DNS::deserilize(const std::string &data)
             {
                 DNSRecord temp;
                 temp.name = get_domain_name();
-                temp.type = (data[index] << 8) | data[index + 1];                                                    // 类型
-                index += 2;                                                                                          // 类型长度
-                temp._class = (data[index] << 8) | data[index + 1];                                                  // 类
-                index += 2;                                                                                          // 类长度
-                temp.ttl = (data[index] << 24) | (data[index + 1] << 16) | (data[index + 2] << 8) | data[index + 3]; // 生存时间
-                index += 4;                                                                                          // 生存时间长度
-                temp.rdlength = (data[index] << 8) | data[index + 1];                                                // 数据长度
-                index += 2;                                                                                          // 数据长度长度
+                temp.type = (static_cast<unsigned char>(data[index]) << 8) | static_cast<unsigned char>(data[index + 1]); // 类型
+                index += 2;                                                                                               // 类型长度
+                temp._class = (static_cast<unsigned char>(data[index]) << 8) | static_cast<unsigned char>(data[index + 1]); // 类
+                index += 2;                                                                                               // 类长度
+                temp.ttl = (static_cast<unsigned char>(data[index]) << 24) | (static_cast<unsigned char>(data[index + 1]) << 16) | (static_cast<unsigned char>(data[index + 2]) << 8) | static_cast<unsigned char>(data[index + 3]); // 生存时间
+                index += 4;                                                                                               // 生存时间长度
+                temp.rdlength = (static_cast<unsigned char>(data[index]) << 8) | static_cast<unsigned char>(data[index + 1]); // 数据长度
+                index += 2;                                                                                               // 数据长度长度
                 for (int j = 0; j < temp.rdlength; j++)
                 {
                     temp.rdata += data[index];
@@ -329,8 +330,8 @@ bool DNS::deserilize(const std::string &data)
                 }
                 if (temp.type == DNS_EDNS) // EDNS 记录
                 {
-                    log.warning("DNS OPT Record is not supported，but it will be stored."); // 不支持 OPT 记录，但会被存储
-                    log.info("EDNS is not supported on this server.");                      // 服务器不支持 EDNS
+                    log->warning("DNS OPT Record is not supported，but it will be stored."); // 不支持 OPT 记录，但会被存储
+                    log->info("EDNS is not supported on this server.");                      // 服务器不支持 EDNS
                 }
                 record.push_back(temp);
             }
@@ -339,14 +340,14 @@ bool DNS::deserilize(const std::string &data)
         if (header.qdcount == 1) // 问题数为1
         {
             query.qname = get_domain_name();
-            query.qtype = (data[index] << 8) | data[index + 1];  // 查询类型
+            query.qtype = (static_cast<unsigned char>(data[index]) << 8) | (static_cast<unsigned char>(data[index + 1])); // 查询类型
             index += 2;                                          // 查询类型长度
-            query.qclass = (data[index] << 8) | data[index + 1]; // 查询类
+            query.qclass = (static_cast<unsigned char>(data[index]) << 8) | (static_cast<unsigned char>(data[index + 1])); // 查询类
             index += 2;                                          // 查询类长度
         }
         else if (header.qdcount > 1)
         {
-            log.error("DNS Query Count is over 1"); // 查询数量超过1
+            log->error("DNS Query Count is over 1"); // 查询数量超过1
             return false;
         }
 
@@ -361,7 +362,7 @@ bool DNS::deserilize(const std::string &data)
     }
     catch (const std::exception &e)
     {
-        log.error("DNS Data is invalid: {}", e.what()); // DNS 数据无效
+        log->error("DNS Data is invalid: {}", e.what()); // DNS 数据无效
         return false;
     }
     return true;

@@ -48,7 +48,7 @@ struct QueryStore
 class DNSRelayServer
 {
 private:
-    Log &log; // 日志
+    std::shared_ptr<Log> log; // 日志
     SocketIO socket_io; // 套接字 IO
     ThreadPool pool; // 线程池
     DNSCache cache; // 缓存
@@ -56,6 +56,9 @@ private:
     IDGenerator id_gen; // ID 生成器
     std::map<unsigned short, QueryStore> queries; // 查询列表
     std::shared_mutex queries_mutex; // 查询列表互斥锁
+
+    std::condition_variable cv; // 条件变量
+    std::mutex cv_mutex; // 条件变量互斥锁
 
     std::jthread clean_thread; // 清理线程
 
@@ -80,7 +83,7 @@ private:
 
     void handle_edns_query(std::string ip, int port, std::shared_ptr<DNS> dns); // 处理 EDNS 查询
 public:
-    DNSRelayServer(Log &log, std::string ip, int port, FilePath map_file, int pool_size = 5); // 构造函数
+    DNSRelayServer(std::shared_ptr<Log> log, std::string ip, int port, FilePath map_file, int pool_size = 5); // 构造函数
     ~DNSRelayServer(); // 析构函数
 
     void set_server(std::string ip, int port); // 设置服务器

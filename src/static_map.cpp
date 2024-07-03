@@ -2,11 +2,13 @@
 
 void StaticIPMap::watch_file()
 {
+    std::unique_lock<std::mutex> lock(cv_mutex);
     file_exist();
     auto last_write_time = std::filesystem::last_write_time(file_path());
-    while (running)
+    while (true)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (cv.wait_for(lock, std::chrono::seconds(1), [this] { return !running.load(); }))
+            break;
         file_exist();
         auto new_write_time = std::filesystem::last_write_time(file_path());
         if (new_write_time != last_write_time)
@@ -20,14 +22,14 @@ void StaticIPMap::watch_file()
 void StaticIPMap::load()
 {
     std::unique_lock<std::shared_mutex> lock(mutex);
-    log.debug("Load ip map from file: {}", file_path().string());
+    log->debug("Load ip map from file: {}", file_path().string());
     IPmap.clear();
     file_exist();
     std::ifstream file(file_path());
     if (!file.is_open())
     {
-        log.error("Open file failed: {}", file_path().string());
-        log.info("The ip map is empty.");
+        log->error("Open file failed: {}", file_path().string());
+        log->info("The ip map is empty.");
         return;
     }
     std::string line;
@@ -43,18 +45,18 @@ void StaticIPMap::load()
         if (ip == "" || domain_name == "")
             if (ip == "" && domain_name == "")
             {
-                log.debug("Empty line on line {}", line_number);
+                log->debug("Empty line on line {}", line_number);
                 continue;
             }
             else
             {
-                log.error("Invalid line on line {}", line_number);
+                log->error("Invalid line on line {}", line_number);
                 continue;
             }
         IP ip_obj;
         if (!ip_obj.set_ip(ip))
         {
-            log.error("Invalid ip on line {}", line_number);
+            log->error("Invalid ip on line {}", line_number);
             continue;
         }
         if (IPmap.find(domain_name) == IPmap.end())
@@ -63,21 +65,21 @@ void StaticIPMap::load()
             IPmap[domain_name].push_back(ip_obj);
     }
     file.close();
-    log.info("Load ip map success.");
+    log->info("Load ip map success.");
 }
 
 void StaticIPMap::file_exist()
 {
     if (std::filesystem::exists(file_path()) == false)
     {
-        log.error("File not exists: {}", file_path().string());
+        log->error("File not exists: {}", file_path().string());
         std::ofstream new_file(file_path());
         new_file.close();
-        log.info("Created empty ip map file: {}", file_path().string());
+        log->info("Created empty ip map file: {}", file_path().string());
     }
 }
 
-StaticIPMap::StaticIPMap(Log &log, FilePath file_path) : log(log), file_path(file_path)
+StaticIPMap::StaticIPMap(std::shared_ptr<Log> log, FilePath file_path) : log(log), file_path(file_path)
 {
     load();
     watch_thread = std::jthread(&StaticIPMap::watch_file, this);
@@ -85,7 +87,8 @@ StaticIPMap::StaticIPMap(Log &log, FilePath file_path) : log(log), file_path(fil
 
 StaticIPMap::~StaticIPMap()
 {
-    running = false;
+    if (running.load())
+        stop();
 }
 
 std::vector<IP> StaticIPMap::get(const std::string &domain_name)
@@ -93,8 +96,16 @@ std::vector<IP> StaticIPMap::get(const std::string &domain_name)
     std::shared_lock<std::shared_mutex> lock(mutex);
     if (IPmap.find(domain_name) == IPmap.end())
     {
-        log.debug("Domain name not found: {}", domain_name);
+        log->debug("Domain name not found: {}", domain_name);
         return {};
     }
     return IPmap[domain_name];
+}
+
+void StaticIPMap::stop()
+{
+    running = false;
+    cv.notify_one();
+    watch_thread.join();
+    log->info("Static IP map stopped successfully.");
 }

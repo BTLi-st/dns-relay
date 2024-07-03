@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <string>
+#include <atomic>
 #include <cstring>
 
 #include "log.h"
@@ -25,21 +26,20 @@
 class UDP_SOCKET
 {
 private:
-    Log &log;
+    std::shared_ptr<Log> log;
+    std::atomic<int> s;
 
 #ifdef _WIN32
     WSADATA wsaData;
-    SOCKET s;
     struct sockaddr_in addr;
 
-    static int instance_count;
+    static std::atomic<int> instance_count;
 #else
-    int s;
     struct sockaddr_in addr;
 #endif
 
 public:
-    UDP_SOCKET(Log &log);
+    UDP_SOCKET(std::shared_ptr<Log> log);
     ~UDP_SOCKET();
 
     void bind(const char *ip, int port); // 绑定
@@ -50,6 +50,8 @@ public:
     int recvfrom(std::string &ip, int &port, char *buf, int len); // 接收，不需要给 IP 预留空间
 
     void close(); // 关闭
+
+    bool is_valid() const; // 是否有效
 };
 
 #endif // DNS_SERVER_SOCKET_H

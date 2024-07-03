@@ -10,12 +10,14 @@ void SocketIO::do_read()
         int len = socket.recvfrom(ip, port, buf, sizeof(buf));
         if (len > 0)
         {
-            log.debug("read from {}:{}, len: {}", ip, port, len);
+            log->debug("read from {}:{}, len: {}", ip, port, len);
             read_callback(ip, port, std::string(buf, len));
         }
         if (len == -1)
         {
-            log.error("recvfrom error: {}", strerror(errno));
+            if (!socket.is_valid()) // socket 关闭或无效
+                return;
+            log->error("recvfrom error: {}", strerror(errno));
         }
     }
 }
@@ -35,12 +37,12 @@ void SocketIO::do_write()
         lock.unlock();
         if (!socket.sendto(ip, port, data.c_str(), data.size()))
         {
-            log.error("sendto error: {}", strerror(errno));
+            log->error("sendto error: {}", strerror(errno));
         }
     }
 }
 
-SocketIO::SocketIO(Log &log, std::string ip, int port, std::function<void(std::string, int, std::string)> read_callback) : log(log), socket(log)
+SocketIO::SocketIO(std::shared_ptr<Log> log, std::string ip, int port, std::function<void(std::string, int, std::string)> read_callback) : log(log), socket(log)
 {
     socket.bind(ip, port);
     this->read_callback = read_callback;
@@ -48,7 +50,8 @@ SocketIO::SocketIO(Log &log, std::string ip, int port, std::function<void(std::s
 
 SocketIO::~SocketIO()
 {
-    stop();
+    if (running.load())
+        stop();
 }
 
 void SocketIO::write(std::string ip, int port, std::string data)
@@ -69,6 +72,8 @@ void SocketIO::stop()
 {
     running = false;
     write_queue_cv.notify_one();
+    socket.close();
     read_thread.join();
     write_thread.join();
+    log->info("SocketIO stopped successfully.");
 }
