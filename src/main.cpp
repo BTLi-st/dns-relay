@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 {
     Level log_level = INFO;
     IP server_ip;
-    server_ip.set_ip("10.3.9.4");
+    server_ip.set_ip("223.5.5.5");
     if (argc > 1)
     {
         int tmp = std::stoi(argv[1]);
@@ -25,8 +25,7 @@ int main(int argc, char* argv[])
     if (argc > 2)
     {
         if(!server_ip.set_ip(argv[2]))
-            std::cout << "Invalid server ip, using 10.3.9.4" << std::endl,
-            server_ip.set_ip("10.3.9.4");
+            std::cout << std::format("Invalid IP address: {}, using", server_ip.set_ip("223.5.5.5")) << std::endl;
     }
     if (argc > 3)
     {
