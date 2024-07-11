@@ -36,6 +36,12 @@
 
 可执行文件在 `bin` 目录下，如果是 `vs` 构建，可执行文件在 `bin\Debug` 或 `bin\Release` 目录下。
 
+### 已经测试的环境
+
+- `Windows 11` + `Visual Studio 2022`
+- `Windows 11` + `MinGW`
+- `Ubuntu 24.04` + `g++`
+
 ### Linux 环境
 
 使用 `g++` 编译器。
